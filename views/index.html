@@ -1,21 +1,21 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
-    <link rel="stylesheet" href="./style.css">
-    <title>Alpha Limit</title>
-  </head>
-  <body>
-    <h1 id="title">Alpha Limit files DataBase</h1>
-    <h3 id="login">Login</h3>
-    <form action="/api/files" method="get">
-        <input id="form-email" type="email" name="email" placeholder="E-mail" required>
-        <input id="form-password" type="password" name="password" placeholder="password" required>
-        <input id="form-btn" type="submit" value="Login">
-    </form>
-    
+    <head>
+        <meta charset="UTF-8">
+        <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self'">
+        <link rel="stylesheet" href="./style.css">
+        <title>Alpha Limit</title>
+    </head>
+    <body>
+        <div id="wrapper">
+            <h1>hello user</h1>
+            <button id="logout" >Logout</button>
+        </div>
+        
+        
     <script src="../renderer.js"></script>
-  </body>
+    </body>
 </html>

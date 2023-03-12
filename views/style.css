@@ -1,4 +1,54 @@
+* {
+    margin: 0;
+    padding: 0;
+}
 
-#title{
-    color: brown;
+.flex-center {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+}
+
+.input {
+    margin: 10px;
+    width: 300px;
+    height: 30px;
+    border: transparent;
+    border-radius: 10px;
+    box-shadow: inset 0 0 2000px rgba(255, 254, 254, 0.5);
+    background-color: transparent;
+    padding: 0 5px;
+}
+
+#first-page {
+    width: 100vw;
+    height: 100vh;
+    background-color: rgb(187, 187, 187);
+}
+
+#title {
+    color: rgb(178, 118, 40);
+    text-shadow: 0 0 5px yellow;
+    margin: 30px 0 40px 0;
+    font-size: 2.2rem;
+}
+
+
+#form-btn {
+    font-size: 1.2rem;
+    font-weight: 400;
+}
+
+#form-btn:hover {
+    color: white;
+    background-color: rgb(101, 101, 101);
+}
+
+#err-msg{
+    width: 300px;
+    height: 300px;
+}
+
+#err-msg-text{
+    color: red;
 }
