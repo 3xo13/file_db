@@ -6,16 +6,38 @@
         <meta
             http-equiv="Content-Security-Policy"
             content="default-src 'self'; script-src 'self'">
+        
         <link rel="stylesheet" href="./style.css">
         <title>Alpha Limit</title>
     </head>
     <body>
-        <div id="wrapper">
-            <h1>hello user</h1>
-            <button id="logout" >Logout</button>
+        <div id="wrapper" class="flex-start">
+            <section id="sidlist" class="flex-center">
+                <button class="sidlist-el btn" id="upload">Upload a file</button>
+                <button class="sidlist-el btn" id="getAllFiles">Get all files</button>
+                <button class="sidlist-el btn" id="getFile">Get a file</button>
+                <button class="sidlist-el btn" id="creatFolder">Creat Folder</button>
+                <button class="sidlist-el btn" id="logout">Logout</button>
+            </section>
+            <section id="main-page">
+                <section id="upload-section" class="hidden">
+                    <h1 id="currentTitle">hello user</h1>
+                    <div id="viewer">
+                        <form id="uploadForm" class="flex-start">
+                            <input type="text" name="text" class="fileUpload">
+                            <input type="file" name="file" class="fileUpload">
+                            <label for="notes" class="fileUpload">Notes :
+                            </label>
+                            <textarea name="notes" id="notes" cols="30" rows="10" class="fileUpload"></textarea>
+                            <input type="submit" id="formUpload" class="fileUpload btn" value="Upload">
+                        </form>
+                    </div>
+                </section>
+                <section id="display-files" class="flex-start"></section>
+            </section>
+
         </div>
-        
-        
-    <script src="../renderer.js"></script>
+
+        <script src="../renderer.js"></script>
     </body>
 </html>
