@@ -5,8 +5,9 @@ contextBridge.exposeInMainWorld('api', {
   sendFormDataToMain: (data) => ipcRenderer.send('form-submitted' , data),
   logout: () => ipcRenderer.invoke('logout'),
   reload: () => ipcRenderer.invoke('reload'),
-  uploadFiles: () => ipcRenderer.invoke('uploadFiles'),
+  uploadFiles: (path) => ipcRenderer.invoke('uploadFiles' , path),
   requestFiles: () => ipcRenderer.invoke('requestFiles'),
+  sendDocumentPath: (path) => ipcRenderer.invoke('sendDocumentPath', path),
   //sendFilesToRenderer: () => ipcRenderer.invoke('sendFilesToRendere'),
 //   checkUser: ipcRenderer.invoke('checkUser'),
 })

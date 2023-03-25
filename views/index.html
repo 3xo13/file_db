@@ -23,14 +23,8 @@
                 <section id="upload-section" class="hidden">
                     <h1 id="currentTitle">hello user</h1>
                     <div id="viewer">
-                        <form id="uploadForm" class="flex-start">
-                            <input type="text" name="text" class="fileUpload">
-                            <input type="file" name="file" class="fileUpload">
-                            <label for="notes" class="fileUpload">Notes :
-                            </label>
-                            <textarea name="notes" id="notes" cols="30" rows="10" class="fileUpload"></textarea>
-                            <input type="submit" id="formUpload" class="fileUpload btn" value="Upload">
-                        </form>
+                        <p id="text">Choose a Folder or File to upload in this folder :</p>
+                        <button id="uploadPathBtn">Upload</button>  <strong id="filePath"></strong> 
                     </div>
                 </section>
                 <section id="display-files" class="flex-start"></section>

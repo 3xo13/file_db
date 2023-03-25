@@ -109,11 +109,13 @@
 }
 
 #display-files{
-    width: 80vh;
+    width: 80vw;
     height: 100vh;
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: auto;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    
 }
 .fileUpload{
     margin: 10px;
@@ -122,20 +124,35 @@
     background-color: lightgray;
 }
 
-.file-name , .file-date{
-    width: fit-content;
-    height: fit-content;
-    overflow: hidden;
-    margin: 0;
-    cursor: pointer;
+.doc{
+    width: 70px;
+    height: 100px;
+    margin: 10px;
 }
 
+.file-name , .file-date , .folder-name , .folder-date{
+    width: 100%;
+    height: 25px;
+    overflow: hidden;
+    margin: 0;
+    flex: 0 0 auto;
+}
 
+.clickable{
+    cursor: pointer;
+    
+}
 
-/* .file-div:hover .file-name ,.file-div:hover .file-date {
-        width: fit-content;
+.currentFolder img{
+    background-color: rgb(105, 196, 20);
+    border-radius: 10px;
+}
+
+.selected .file-name , .selected .file-date , .selected .folder-name , .selected .folder-date{
+    width: fit-content;
     height: fit-content;
-} */
+}
+
   
 
 
