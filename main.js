@@ -1,9 +1,14 @@
-const {app, BrowserWindow ,ipcMain , dialog} = require('electron');
+const {app, BrowserWindow, ipcMain, dialog, nativeImage} = require('electron');
 const path = require('path');
-const { MongoClient, GridFSBucket } = require('mongodb');
+const {MongoClient, GridFSBucket} = require('mongodb');
 const AWS = require('aws-sdk');
 const fs = require('fs');
 require('dotenv').config();
+const {promisify} = require('util');
+const {log} = require('console');
+const {json} = require('express');
+const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
 
 // Load AWS configuration file
 process.env.AWS_SDK_LOAD_CONFIG = 1;
@@ -13,199 +18,261 @@ const secretKey = process.env.AWS_SECRET_KEY;
 const region = process.env.AWS_REGION;
 const mongoURL = process.env.MONGO_URL;
 
+// Set the parameters for the bucket and object
+const bucketName = 'alpha-limit';
 
-//mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true });
+// configure S3
+const s3 = new AWS.S3(
+    {accessKeyId: accessKey, secretAccessKey: secretKey, region: region}
+);
+
+// mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true
+// });
 const dbName = 'alpha_file_syastem';
-
-async function findUserInDatabase(data) {
-  const {email, password} = data; 
-  const client = await  MongoClient.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true });
-  const db = client.db(dbName).collection('users');
-
-  try {
-    const doc = await db.findOne({email: email});
-    if(doc){
-      if(password === doc.password){
-        return doc
-      }else{
-        return 'incorrect password';
-      }
-    }else{
-      return 'user not found'
-    }
-  } catch (error) {
-    console.log(err)
-  }
-}
 
 // global variables to be accessed later
 
 let currentWindow;
 
+app
+    .whenReady()
+    .then(() => {
+        createWindow('./views/index.html');
+    });
 
-function createWindow(window) {
-  currentWindow = new BrowserWindow({ width: 800, height: 600 , webPreferences: {
-    preload: path.join(__dirname, 'preload.js'),
-    nodeIntegration: true,
-    contextIsolation: true,
-    contentSecurityPolicy: "default-src 'self'; style-src https://cdnjs.cloudflare.com"
-} });
-  currentWindow.loadFile(window);
-  //currentWindow.webContents.openDevTools();
-  currentWindow.maximize();
-  
-  currentWindow.on('closed', () => {
-    currentWindow = null;
-  });
-  
-}
-
-
-app.whenReady().then(() => {
-  createWindow('./views/index.html');
-  
-
-  // open new window when the app activate and all windows are closed
-  app.on('activate', () => {
+// open new window when the app activate and all windows are closed
+app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow('./views/login.html')
+        createWindow('./views/login.html')
     }
-  })
-  // close the app if all windows are closed except for mac users
-  app.on('window-all-closed', () => {
+});
+
+// close the app if all windows are closed except for mac users
+app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-      app.quit()
+        app.quit()
     }
-  })
-  
-  // handle the data for loging in 
-  ipcMain.on('form-submitted',async (event, data) => {
+})
+
+// handle the data for loging in
+ipcMain.on('form-submitted', async (event, data) => {
     //console.log(data);
     const user = await findUserInDatabase(data);
-    if(user){
-      if(typeof user === 'string'){
-        return user
-      }else{
-    
-      currentWindow.loadFile('./views/index.html');
+    if (user) {
+        if (typeof user === 'string') {
+            return user
+        } else {
+
+            currentWindow.loadFile('./views/index.html');
+        }
     }
-  }
-  //console.log('Received form data in main process:',user);
+    //console.log('Received form data in main process:',user);
 })
+
 // handle logout
-ipcMain.handle('logout',() => currentWindow.loadFile('./views/login.html'));
+ipcMain.handle('logout', () => currentWindow.loadFile('./views/login.html'));
+
 // find a way to reload with the data
 ipcMain.handle('reload', () => currentWindow.reload());
 
-// handle upload files
-ipcMain.handle('uploadFiles', async (event, path) => {
-  try {
-    let fileToBeUploaded =await handleFileOpen();
-  console.log(fileToBeUploaded);
-  } catch (error) {
-    console.log(error);
-  }
-  
-});
-
-
-ipcMain.handle('requestFiles', handleFilesReq);
-
-ipcMain.handle('sendDocumentPath',async (event, path) => {
-  try {
-    const data = await s3.listObjectsV2({
-      Bucket: bucketName,
-      Prefix: path
-    }).promise();
-    //console.log(data.Contents);
-    return data.Contents;
-  } catch (err) {
-    console.log(err);
-    return [];
-  }
-});
-
-});
-
-// s3 operations
-// Set the parameters for the bucket and object
-const bucketName = 'alpha-limit';
-const keyName = 'example-object.txt';
-const params = {
-  Bucket: bucketName,
-  Key: keyName,
-  Body: 'Hello, world!'
-};
-// configure S3
-const s3 = new AWS.S3(
-  {accessKeyId: accessKey, secretAccessKey: secretKey, region: region}
-  );
-  
-  // console.log('AWS access key ID:', accessKey); console.log('AWS secret access
-  // key:', secretKey); Create a new object in the bucket
-  
-  
-  // Upload the object to the bucket
-  // s3.putObject(params, function (err, data) {
-    //     if (err) {
-//         console.log(err);
-//     } else {
-//         console.log(
-//             `Successfully uploaded data to ` + bucketName + '/' + keyName
-//         );
-//     }
-// });
-
-// Read the object from the bucket
-// s3.getObject({
-//     Bucket: bucketName,
-//     Key: keyName
-// }, function (err, data) {
-//     if (err) {
-//         console.log(err);
-//     } else {
-//         console.log('Object contents:', data.Body.toString());
-//     }
-// });
-
-// list contnts of folder in bucket
-// s3.listObjects({
-//     Bucket: bucketName,
-//     Prefix: 'logos'
-// }, function (err, data) {
-//     if (err) {
-//         console.log(err);
-//     } else {
-//         console.log('Object contents:', data.Contents);
-//         //console.log('data contents: ', data);
-//     }
-// });
-
-const handleFilesReq = async function() {
-  try {
-    const data = await s3.listObjectsV2({
-      Bucket: bucketName,
-      Prefix: 'logos'
-    }).promise();
-    //console.log(data.Contents);
-    return data.Contents;
-  } catch (err) {
-    console.log(err);
-    return [];
-  }
-};
-
-
-// handle file open
-async function handleFileOpen() {
- let path =await dialog.showOpenDialog({
-    properties: ['openDirectory']
-  }).then(result => {
-    if (!result.canceled) {
-      return result.filePaths[0];
+// handle upload folder
+ipcMain.handle('uploadFolder', async (event, s3FolderPath) => {
+    try {
+        const folderPath = await handleFolderOpen();
+        const filePaths = getFilePaths(folderPath);
+        const files = await Promise.all(filePaths.map(path => fs.readFileSync(path)));
+        creatFolderRecord(s3FolderPath, folderPath, filePaths);
+    } catch (error) {
+        console.log(error);
     }
-  }).catch(err => {
-    console.log(err);
-  });
-  return path;
+});
+
+// mongodb functions
+async function findUserInDatabase(data) {
+    const {email, password} = data;
+    const client = await MongoClient.connect(mongoURL, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+    const db = client
+        .db(dbName)
+        .collection('users');
+
+    try {
+        const doc = await db.findOne({email: email});
+        if (doc) {
+            if (password === doc.password) {
+                return doc
+            } else {
+                return 'incorrect password';
+            }
+        } else {
+            return 'user not found'
+        }
+    } catch (error) {
+        console.log(err)
+    }
 }
+
+async function creatFolderRecord(s3FolderPath, folderPath, filePaths) {
+    const client = await MongoClient.connect(mongoURL, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+    const db = client
+        .db(dbName)
+        .collection('records');
+    // get the folder name
+    const folderName = folderPath
+        .split('\\')
+        .slice(-1)[0];
+    let fileNames = filePaths.map(path => path.split('\\'));
+    fileNames = fileNames.map(path => path.slice(path.indexOf(folderName)));
+    //console.log(fileNames);
+    let record = getTreeStructure(s3FolderPath, fileNames);
+    try { // insert the record to the database
+      const folderInDB = await db.findOne({folderName: 'main'});
+      if(folderName === 'main'){
+        folderInDB.children.push(record);
+      }
+      else{
+        insertIntoChildByPath(folderInDB, s3FolderPath, record);
+      }
+      const updatedFolder = await db.findOneAndUpdate({folderName: 'main'}, {$set: folderInDB}, );
+      console.log(updatedFolder);
+    } catch (error) {
+      console.log(error);
+    }
+};
+
+// create windwos
+function createWindow(window) {
+    currentWindow = new BrowserWindow({
+        width: 800,
+        height: 600,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            nodeIntegration: true,
+            contextIsolation: true,
+            contentSecurityPolicy: "default-src 'self'; style-src https://cdnjs.cloudflare.com"
+        }
+    });
+    currentWindow.loadFile(window);
+    //currentWindow.webContents.openDevTools();
+    currentWindow.maximize();
+
+    currentWindow.on('closed', () => {
+        currentWindow = null;
+    });
+
+}
+
+// return the path of the folder to be uploaded
+async function handleFolderOpen() {
+    let path = await
+    dialog
+        .showOpenDialog({properties: ['openDirectory']})
+        .then(result => {
+            if (!result.canceled) {
+                return result.filePaths[0];
+            }
+        })
+        .catch(err => {
+            console.log(err);
+        });
+
+    return path;
+}
+
+// return the path of the files to be uploaded from the folder as an array
+function getFilePaths(folderPath) {
+    const fileNames = fs.readdirSync(folderPath);
+    const filePaths = [];
+
+    fileNames.forEach((fileName) => {
+        const filePath = path.join(folderPath, fileName);
+        const stats = fs.statSync(filePath);
+
+        if (stats.isFile()) {
+            filePaths.push(filePath);
+        } else if (stats.isDirectory()) {
+            filePaths.push(...getFilePaths(filePath));
+        }
+    });
+
+    return filePaths;
+}
+
+
+/* general functions */
+
+// return tree structure of the folder and files
+function getTreeStructure(folderInDBPath,fileNames) {
+    let folderName = fileNames[0][0];
+    let folder = {
+      name: folderName,
+      children: [],
+      path: folderInDBPath + '/' + fileNames[0][0] ,
+      type: 'folder',
+    };
+    fileNames = fileNames.map(path => path.slice(1));
+    console.log(fileNames);
+    // create a tree from an array of arrays
+    fileNames.forEach((path) => {
+      let currentFolder = folder;
+      path.forEach((name, index) => {
+        let childFolder = currentFolder.children.find((child) => child.name === name);
+        if (childFolder) {
+          currentFolder = childFolder;
+        } else {
+          let newFolder = {
+            name,
+            children: [],
+            path: currentFolder.path + '/' + name,
+            type: index === path.length - 1
+              ? 'file'
+              : 'folder',
+          };
+          currentFolder.children.push(newFolder);
+          currentFolder = newFolder;
+        }
+      });
+    });
+
+    return folder;
+}
+
+
+
+function insertIntoChildByPath(folder, childPath, newChild) {
+  // Split the child path into an array of path segments
+  const pathSegments = childPath.split('/').filter(segment => segment.length > 0);
+
+  // Traverse the folder hierarchy to find the child with the matching path
+  let currentFolder = folder;
+  for (let i = 0; i < pathSegments.length; i++) {
+    const pathSegment = pathSegments[i];
+    let childFound = false;
+    
+    // Search for the child with the matching name
+    for (let j = 0; j < currentFolder.children.length; j++) {
+      const child = currentFolder.children[j];
+      if (child.path === `${currentFolder.path}/${pathSegment}`) {
+        // Found the child with the matching name, continue searching
+        currentFolder = child;
+        childFound = true;
+        break;
+      }
+    }
+    
+    // If the child with the matching name was not found, return false
+    if (!childFound) {
+      return false;
+    }
+  }
+
+  // Add the new child to the children array of the found child
+  currentFolder.children.push(newChild);
+  return true;
+}
+

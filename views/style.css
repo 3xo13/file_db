@@ -136,6 +136,7 @@
     overflow: hidden;
     margin: 0;
     flex: 0 0 auto;
+    white-space: normal;
 }
 
 .clickable{

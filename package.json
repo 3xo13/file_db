@@ -4,12 +4,14 @@
   "description": "a file system app made with electron",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dev": "nodemon --exec electron ."
   },
   "author": "kerim",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^23.1.3"
+    "electron": "^23.1.3",
+    "nodemon": "^2.0.22"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.32.0",
