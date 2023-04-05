@@ -1,15 +1,12 @@
-const {app, BrowserWindow, ipcMain, dialog, nativeImage} = require('electron');
+const {app, BrowserWindow, ipcMain} = require('electron');
 const path = require('path');
-const {MongoClient, GridFSBucket} = require('mongodb');
+const {MongoClient} = require('mongodb');
 const AWS = require('aws-sdk');
 const fs = require('fs');
 require('dotenv').config();
-const {promisify} = require('util');
-const {log} = require('console');
-const {json} = require('express');
-const readdir = promisify(fs.readdir);
-const stat = promisify(fs.stat);
-
+const {getTreeStructure, handleFolderOpen} = require('./modules/functions');
+const {getFilePaths} = require('./modules/functions');
+const {findUserInDatabase} = require('./modules/mongoOperations');
 // Load AWS configuration file
 process.env.AWS_SDK_LOAD_CONFIG = 1;
 // Load AWS credentials and region from environment variables
@@ -17,7 +14,7 @@ const accessKey = process.env.AWS_ACCESS_KEY;
 const secretKey = process.env.AWS_SECRET_KEY;
 const region = process.env.AWS_REGION;
 const mongoURL = process.env.MONGO_URL;
-
+const dbName = 'alpha_file_syastem';
 // Set the parameters for the bucket and object
 const bucketName = 'alpha-limit';
 
@@ -26,14 +23,10 @@ const s3 = new AWS.S3(
     {accessKeyId: accessKey, secretAccessKey: secretKey, region: region}
 );
 
-// mongoose.connect(mongoURL, { useNewUrlParser: true, useUnifiedTopology: true
-// });
-const dbName = 'alpha_file_syastem';
-
-// global variables to be accessed later
-
+// global window
 let currentWindow;
 
+// create a new window
 app
     .whenReady()
     .then(() => {
@@ -88,62 +81,97 @@ ipcMain.handle('uploadFolder', async (event, s3FolderPath) => {
 });
 
 // mongodb functions
-async function findUserInDatabase(data) {
-    const {email, password} = data;
-    const client = await MongoClient.connect(mongoURL, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    });
-    const db = client
-        .db(dbName)
-        .collection('users');
-
-    try {
-        const doc = await db.findOne({email: email});
-        if (doc) {
-            if (password === doc.password) {
-                return doc
-            } else {
-                return 'incorrect password';
-            }
-        } else {
-            return 'user not found'
-        }
-    } catch (error) {
-        console.log(err)
-    }
-}
 
 async function creatFolderRecord(s3FolderPath, folderPath, filePaths) {
     const client = await MongoClient.connect(mongoURL, {
         useNewUrlParser: true,
         useUnifiedTopology: true
     });
+
     const db = client
         .db(dbName)
         .collection('records');
+
     // get the folder name
     const folderName = folderPath
         .split('\\')
         .slice(-1)[0];
+
     let fileNames = filePaths.map(path => path.split('\\'));
+
     fileNames = fileNames.map(path => path.slice(path.indexOf(folderName)));
-    //console.log(fileNames);
+
     let record = getTreeStructure(s3FolderPath, fileNames);
+
     try { // insert the record to the database
-      const folderInDB = await db.findOne({folderName: 'main'});
-      if(folderName === 'main'){
-        folderInDB.children.push(record);
-      }
-      else{
-        insertIntoChildByPath(folderInDB, s3FolderPath, record);
-      }
-      const updatedFolder = await db.findOneAndUpdate({folderName: 'main'}, {$set: folderInDB}, );
-      console.log(updatedFolder);
+
+        const folderInDB = await db.findOne({folderName: 'main'});
+
+        if (folderName === 'main') {
+            folderInDB
+                .children
+                .push(record);
+            console.log(folderInDB);
+        } else {
+            console.log(insertIntoChildByPath(folderInDB, s3FolderPath, record));
+        }
+        // const updatedFolder = await db.findOneAndUpdate({
+        //     folderName: 'main'
+        // }, {
+        //     $set: folderInDB
+        // },);
+        //console.log(updatedFolder);
     } catch (error) {
-      console.log(error);
+        console.log(error);
     }
 };
+
+// experimental functions
+
+function insertIntoChildByPath(folder, childPath, newChild) {
+    // Split the child path into an array of path segments
+    const pathSegments = childPath
+        .split('/')
+        .filter(segment => segment.length > 0);
+
+    // Traverse the folder hierarchy to find the child with the matching path
+    let currentFolder = folder;
+    for (let i = 0; i < pathSegments.length; i++) {
+        const pathSegment = pathSegments[i];
+        let childFound = false;
+
+        // Search for the child with the matching name
+        for (let j = 0; j < currentFolder.children.length; j++) {
+            const child = currentFolder.children[j];
+            if (child.path === `${currentFolder.path}/${pathSegment}`) {
+                // Found the child with the matching name, continue searching
+                currentFolder = child;
+                childFound = true;
+                break;
+            }
+        }
+
+        // If the child with the matching name was not found, return false
+        if (!childFound) {
+            return false;
+        }
+    }
+
+    // Add the new child to the children array of the found child
+    currentFolder
+        .children
+        .push(newChild);
+    return currentFolder;
+}
+
+
+
+
+
+
+
+
+
 
 // create windwos
 function createWindow(window) {
@@ -166,113 +194,3 @@ function createWindow(window) {
     });
 
 }
-
-// return the path of the folder to be uploaded
-async function handleFolderOpen() {
-    let path = await
-    dialog
-        .showOpenDialog({properties: ['openDirectory']})
-        .then(result => {
-            if (!result.canceled) {
-                return result.filePaths[0];
-            }
-        })
-        .catch(err => {
-            console.log(err);
-        });
-
-    return path;
-}
-
-// return the path of the files to be uploaded from the folder as an array
-function getFilePaths(folderPath) {
-    const fileNames = fs.readdirSync(folderPath);
-    const filePaths = [];
-
-    fileNames.forEach((fileName) => {
-        const filePath = path.join(folderPath, fileName);
-        const stats = fs.statSync(filePath);
-
-        if (stats.isFile()) {
-            filePaths.push(filePath);
-        } else if (stats.isDirectory()) {
-            filePaths.push(...getFilePaths(filePath));
-        }
-    });
-
-    return filePaths;
-}
-
-
-/* general functions */
-
-// return tree structure of the folder and files
-function getTreeStructure(folderInDBPath,fileNames) {
-    let folderName = fileNames[0][0];
-    let folder = {
-      name: folderName,
-      children: [],
-      path: folderInDBPath + '/' + fileNames[0][0] ,
-      type: 'folder',
-    };
-    fileNames = fileNames.map(path => path.slice(1));
-    console.log(fileNames);
-    // create a tree from an array of arrays
-    fileNames.forEach((path) => {
-      let currentFolder = folder;
-      path.forEach((name, index) => {
-        let childFolder = currentFolder.children.find((child) => child.name === name);
-        if (childFolder) {
-          currentFolder = childFolder;
-        } else {
-          let newFolder = {
-            name,
-            children: [],
-            path: currentFolder.path + '/' + name,
-            type: index === path.length - 1
-              ? 'file'
-              : 'folder',
-          };
-          currentFolder.children.push(newFolder);
-          currentFolder = newFolder;
-        }
-      });
-    });
-
-    return folder;
-}
-
-
-
-function insertIntoChildByPath(folder, childPath, newChild) {
-  // Split the child path into an array of path segments
-  const pathSegments = childPath.split('/').filter(segment => segment.length > 0);
-
-  // Traverse the folder hierarchy to find the child with the matching path
-  let currentFolder = folder;
-  for (let i = 0; i < pathSegments.length; i++) {
-    const pathSegment = pathSegments[i];
-    let childFound = false;
-    
-    // Search for the child with the matching name
-    for (let j = 0; j < currentFolder.children.length; j++) {
-      const child = currentFolder.children[j];
-      if (child.path === `${currentFolder.path}/${pathSegment}`) {
-        // Found the child with the matching name, continue searching
-        currentFolder = child;
-        childFound = true;
-        break;
-      }
-    }
-    
-    // If the child with the matching name was not found, return false
-    if (!childFound) {
-      return false;
-    }
-  }
-
-  // Add the new child to the children array of the found child
-  currentFolder.children.push(newChild);
-  return true;
-}
-
