@@ -106,65 +106,144 @@ async function creatFolderRecord(s3FolderPath, folderPath, filePaths) {
     try { // insert the record to the database
 
         const folderInDB = await db.findOne({folderName: 'main'});
-
-        if (folderName === 'main') {
-            folderInDB
-                .children
-                .push(record);
-            console.log(folderInDB);
+        let val = false;
+        if (s3FolderPath === 'main') {
+            if (folderInDB.children.filter(ch => ch.name === record.name).length > 0){ 
+                console.log(folderInDB.children.filter(ch => ch.name === record.name).length > 0);
+                console.log('Folder already exists');
+                return 'Folder already exists'
+            }
+           
+                try {
+                    const updatedFolder = await db.findOneAndUpdate({
+                        folderName: 'main'
+                    }, {
+                        $push: {
+                            children: record
+                        }
+                    },);
+                    val = true;
+                } catch (error) {
+                    console.log(error);
+                }
+            
+           
         } else {
-            console.log(insertIntoChildByPath(folderInDB, s3FolderPath, record));
+          const updatedFolder = insertIntoChildByPath(folderInDB, s3FolderPath, record);
+          //console.log(updatedFolder);
+            //console.dir(JSON.stringify(updatedFolder , null, 2));
+            if (updatedFolder) {
+                // save the updated folder to the database
+                try {
+                    const updatedDoc = await db.findOneAndUpdate({
+                        folderName: 'main'
+                    }, {
+                        $set: folderInDB
+                    },);
+                    val = true;
+                    
+                } catch (error) {
+                    console.log(error);
+                }
+            } else {
+                console.log('Folder not found');
+                
+            }
         }
-        // const updatedFolder = await db.findOneAndUpdate({
-        //     folderName: 'main'
-        // }, {
-        //     $set: folderInDB
-        // },);
-        //console.log(updatedFolder);
+        
     } catch (error) {
         console.log(error);
     }
 };
 
 // experimental functions
+//insertIntoChildByPath(folderInDB, s3FolderPath, record)
+// function insertIntoChildByPath(folder, childPath, newChild) {
+//     // Split the child path into an array of path segments
+//     const pathSegments = childPath
+//         .split('/')
+//         .filter(segment => segment.length > 0).slice(1);
+//     console.log(pathSegments);
+//     // Traverse the folder hierarchy to find the child with the matching path
+//     let currentFolder = folder;
+//     console.log(currentFolder);
+//     for (let i = 0; i < pathSegments.length; i++) {
+//         const pathSegment = pathSegments[i];
+//         let childFound = false;
+
+//         // Search for the child with the matching name
+//         for (let j = 0; j < currentFolder.children.length; j++) {
+//             const child = currentFolder.children[j];
+//             console.log(child.path,`${currentFolder.path}/${pathSegment}`);
+//             if (child.path === `${currentFolder.path}/${pathSegment}`) {
+//                 // Found the child with the matching name, continue searching
+//                 currentFolder = child;
+//                 childFound = true;
+//                 break;
+//             }
+//         }
+
+//         // If the child with the matching name was not found, return false
+//         if (!childFound) {
+//             return false;
+//         }
+//     }
+
+//     // Add the new child to the children array of the found child
+//     currentFolder
+//         .children
+//         .push(newChild);
+//     return currentFolder;
+// }
 
 function insertIntoChildByPath(folder, childPath, newChild) {
     // Split the child path into an array of path segments
     const pathSegments = childPath
         .split('/')
         .filter(segment => segment.length > 0);
-
+  
     // Traverse the folder hierarchy to find the child with the matching path
     let currentFolder = folder;
     for (let i = 0; i < pathSegments.length; i++) {
         const pathSegment = pathSegments[i];
         let childFound = false;
-
+  
         // Search for the child with the matching name
         for (let j = 0; j < currentFolder.children.length; j++) {
             const child = currentFolder.children[j];
-            if (child.path === `${currentFolder.path}/${pathSegment}`) {
+            if (child.name === pathSegment) {
                 // Found the child with the matching name, continue searching
                 currentFolder = child;
                 childFound = true;
                 break;
             }
         }
-
-        // If the child with the matching name was not found, return false
+  
+        // If the child with the matching name was not found, create a new child
         if (!childFound) {
-            return false;
+            const newChildFolder = {
+                name: pathSegment,
+                children: [],
+                type: 'folder'
+            };
+            currentFolder.children.push(newChildFolder);
+            currentFolder = newChildFolder;
         }
     }
-
-    // Add the new child to the children array of the found child
-    currentFolder
-        .children
-        .push(newChild);
-    return currentFolder;
-}
-
-
+  
+    // Check if the new child already exists in the current folder
+    const existingChild = currentFolder.children.find(child => child.name === newChild.name);
+    if (existingChild) {
+        // Child with the same name already exists, return false
+        console.log('Child with the same name already exists');
+        return false;
+    } else {
+        // Add the new child to the children array of the current folder
+        currentFolder.children.push(newChild);
+        return currentFolder;
+    }
+  }
+  
 
 
 

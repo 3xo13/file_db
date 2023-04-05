@@ -13,7 +13,6 @@ const path = require('path');
       type: 'folder',
     };
     fileNames = fileNames.map(path => path.slice(1));
-    //console.log(fileNames);
     // create a tree from an array of arrays
     fileNames.forEach((path) => {
       let currentFolder = folder;
