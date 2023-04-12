@@ -66,6 +66,6 @@ function getCurrentPath() {
         let currentPath = currentFolder.id;
         return currentPath;
     }
-    return 'main'
+    return 'main/test2/'
 };
 
