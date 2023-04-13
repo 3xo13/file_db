@@ -16,6 +16,8 @@ const Folder = mongoose.model('Folder', folderSchema);
 
 // return tree structure of the folder and files
 function getTreeStructure(folderInDBPath,fileNames) {
+  console.log(fileNames);
+  if(fileNames.length === 0) return null;
   let folderName = fileNames[0][0]; // get the name of the folder
   let folder = new Folder({
       name: folderName,

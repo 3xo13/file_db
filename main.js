@@ -1,8 +1,7 @@
 const {app, BrowserWindow, ipcMain} = require('electron');
 const path = require('path');
 const {MongoClient} = require('mongodb');
-const AWS = require('aws-sdk');
-const fs = require('fs');
+const {uploadFolderToBucket} = require('./modules/database.js');
 require('dotenv').config();
 const {getTreeStructure, handleFolderOpen} = require('./modules/functions');
 const {getFilePaths} = require('./modules/functions');
@@ -16,13 +15,8 @@ const secretKey = process.env.AWS_SECRET_KEY;
 const region = process.env.AWS_REGION;
 const mongoURL = process.env.MONGO_URL;
 const dbName = 'alpha_file_syastem';
-// Set the parameters for the bucket and object
-const bucketName = 'alpha-limit';
 
-// configure S3
-const s3 = new AWS.S3(
-    {accessKeyId: accessKey, secretAccessKey: secretKey, region: region}
-);
+
 
 // global window
 let currentWindow;
@@ -73,24 +67,31 @@ ipcMain.handle('reload', () => currentWindow.reload());
 ipcMain.handle('uploadFolder', async (event, s3FolderPath) => {
     try {
         const folderPath = await handleFolderOpen();
+        // console.log('folder path', folderPath);
         const filePaths = getFilePaths(folderPath);
-        const files = await Promise.all(filePaths.map(path => fs.readFileSync(path)));
-        let recordResult = await createFolderRecord(s3FolderPath, folderPath, filePaths);
-        //console.log(recordResult);
+        if(filePaths.length === 0){
+            throw new Error('No files found in the folder');
+        }
+        // console.log('file paths', filePaths);
+        const folderName = folderPath
+        .split('\\')
+        .slice(-1)[0];
+        let recordResult = await createFolderRecord(
+            s3FolderPath,
+            folderPath,
+            filePaths
+        );
+        // console.log('record results : ',recordResult);
+        if (recordResult && recordResult[1].modifiedCount > 0) {
+            let result = await uploadFolderToBucket(s3FolderPath, filePaths , folderName);
+            console.log(result);
+        }
     } catch (error) {
         console.log(error);
     }
 });
 
 // expermintal functions
-
-
-  
-
-
-
-
-
 
 
 

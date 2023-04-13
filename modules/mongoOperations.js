@@ -38,7 +38,7 @@ async function findUserInDatabase(data) {
 }
 
 async function createFolderRecord(pathToFolder, folderPath, filePaths) {
-    console.log('folder path', folderPath);
+    
     const client = await MongoClient.connect(mongoURL, {
         useNewUrlParser: true,
         useUnifiedTopology: true
@@ -58,7 +58,10 @@ async function createFolderRecord(pathToFolder, folderPath, filePaths) {
     fileNames = fileNames.map(path => path.slice(path.indexOf(folderName)));
 
     let record = getTreeStructure(pathToFolder, fileNames);
-
+    if(record === null){
+        console.log('record is null');
+        return null;
+    }
     try {
         const doc = await db.findOne({name: 'main'});
         if (pathToFolder === 'main/') {
@@ -74,6 +77,7 @@ async function createFolderRecord(pathToFolder, folderPath, filePaths) {
                 }
             });
             console.log('result', result);
+            return [record,result];
         } else {
             let oldFolder = JSON.stringify(doc);
             insertNewFolder(doc, record, pathToFolder);
@@ -88,6 +92,7 @@ async function createFolderRecord(pathToFolder, folderPath, filePaths) {
                     }
                 });
                 console.log('result', result);
+                return [record,result];
             } else {
                 console.log('error in updating the folder');
                 return null;
