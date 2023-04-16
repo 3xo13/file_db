@@ -43,5 +43,30 @@ async function uploadFolderToBucket(parentPath, filePaths , folderName) {
     }
 }
 
+async function getFileFromDB(filePath){
+    let params = {
+        Bucket: bucketName,
+        Key: filePath
+    }
+    let result = null;
+    try{
+        s3.getObject(params, function(err, data) {
+            if (err) console.log(err, err.stack); // an error occurred
+            else {
+                console.log('data from database.js',data);           // successful response
+                result = data;
+            } 
+            
+        });
+    }catch(err){
+        console.log(err);
+        return false;
+    }
+    return result;
+}
 
-module.exports = {uploadFolderToBucket};
+
+module.exports = {
+    uploadFolderToBucket,
+    getFileFromDB,
+};

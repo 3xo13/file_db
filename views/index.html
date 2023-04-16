@@ -11,25 +11,28 @@
         <title>Alpha Limit</title>
     </head>
     <body>
-        <div id="wrapper" class="flex-start">
+        <div id="wrapper" >
             <section id="sidlist" class="flex-center">
-                <button class="sidlist-el btn" id="upload" >Upload in this folder</button>
-                <button class="sidlist-el btn" id="getAllFiles">Get all files</button>
-                <button class="sidlist-el btn" id="getFile">Get a file</button>
-                <button class="sidlist-el btn" id="creatFolder">Creat Folder</button>
+                <button class="sidlist-el btn" id="getAllFiles">Root Folder</button>
+                <button class="sidlist-el btn" id="upload" >Upload</button>
+                <button class="sidlist-el btn" id="delete">Delete</button>
+                <!-- <button class="sidlist-el btn" id="creatFolder">Creat Folder</button> -->
                 <button class="sidlist-el btn" id="logout">Logout</button>
             </section>
             <section id="main-page">
                 <section id="upload-section" class="hidden">
-                    <h1 id="currentTitle">hello user</h1>
+                    <!-- <h1 id="currentTitle">hello user</h1> -->
                     <div id="viewer">
-                        <p id="text">Choose a Folder or File to upload in this folder :</p>
-                        <button id="uploadFolderBtn">Upload folder</button>  <strong id="folderPath"></strong> 
-                        <button id="uploadfileBtn">Upload file</button> <strong id="filePath"></strong>
-                        
+                        <p id="upload-text">Choose a Folder or File to upload in this folder :</p>
+                        <button id="uploadFolderBtn" class="upload-btn">Upload folder</button> 
+                        <button id="uploadfileBtn" class="upload-btn">Upload file</button>
                     </div>
                 </section>
-                <section id="display-files" class="flex-start"></section>
+                <section id="display">
+                    <div id="folder-path"><button id="step-back"><img src="../assets/back.png" alt="Back" id="back-icon"></button><p id="path-text">main/</p></div>
+                    <section id="display-files" class="flex-start"></section>  
+                </section>
+                
             </section>
 
         </div>

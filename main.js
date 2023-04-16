@@ -7,6 +7,7 @@ const {getTreeStructure, handleFolderOpen} = require('./modules/functions');
 const {getFilePaths} = require('./modules/functions');
 const {findUserInDatabase} = require('./modules/mongoOperations');
 const {createFolderRecord} = require('./modules/mongoOperations');
+const {getFileFromDB} = require('./modules/database.js');
 // Load AWS configuration file
 process.env.AWS_SDK_LOAD_CONFIG = 1;
 // Load AWS credentials and region from environment variables
@@ -14,9 +15,9 @@ const accessKey = process.env.AWS_ACCESS_KEY;
 const secretKey = process.env.AWS_SECRET_KEY;
 const region = process.env.AWS_REGION;
 const mongoURL = process.env.MONGO_URL;
+const mainId = process.env.MAIN_ID;
 const dbName = 'alpha_file_syastem';
-
-
+//console.log(mainId);
 
 // global window
 let currentWindow;
@@ -72,7 +73,7 @@ ipcMain.handle('uploadFolder', async (event, s3FolderPath) => {
         if(filePaths.length === 0){
             throw new Error('No files found in the folder');
         }
-        // console.log('file paths', filePaths);
+
         const folderName = folderPath
         .split('\\')
         .slice(-1)[0];
@@ -84,12 +85,31 @@ ipcMain.handle('uploadFolder', async (event, s3FolderPath) => {
         // console.log('record results : ',recordResult);
         if (recordResult && recordResult[1].modifiedCount > 0) {
             let result = await uploadFolderToBucket(s3FolderPath, filePaths , folderName);
-            console.log(result);
+            
+        //    console.log(result);
         }
     } catch (error) {
         console.log(error);
     }
 });
+
+// handle root folder request
+ipcMain.handle('requestFiles', async (e)=> {
+    try {
+        const client = new MongoClient(mongoURL);
+        await client.connect();
+        const db = client.db(dbName);
+        const collection = db.collection('records');
+        const result = await collection.find({name: 'main'}).toArray();
+        // console.log(result);
+         return result;
+        //const treeStructure = getTreeStructure(result);
+        // console.log(treeStructure);
+       // return treeStructure;
+    } catch (error) {
+        console.log(error);
+    }
+})
 
 // expermintal functions
 
@@ -108,11 +128,28 @@ function createWindow(window) {
         }
     });
     currentWindow.loadFile(window);
-    //currentWindow.webContents.openDevTools();
+    // open dev tools
     currentWindow.maximize();
-
+    setTimeout(() => {
+       currentWindow.webContents.openDevTools(); 
+    }, 500);
+    
     currentWindow.on('closed', () => {
         currentWindow = null;
     });
 
 }
+
+// open file // not working and too many events are being fired
+ipcMain.handle('openFile', async (event, path) => {
+    try {
+        let file = await getFileFromDB(path);
+        console.log(file); 
+    } catch (error) {
+        console.log(error);
+    }
+    
+    
+})
+
+
