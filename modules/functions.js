@@ -64,9 +64,8 @@ async function handleFolderOpen() {
         })
         .catch(err => {
             console.log(err);
-        });
-
-    return path;
+        })
+  return path;
 }
 
 // return the path of the files to be uploaded from the folder as an array

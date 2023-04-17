@@ -211,7 +211,7 @@
 }
   .folder-item:hover{
     overflow: visible;
-    background-color: white;
+    
   }
   .file-icon{
     width: 48px;
@@ -224,4 +224,6 @@
   }
 
 
-
+.selected{
+    background-color: aquamarine;
+}

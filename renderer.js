@@ -56,7 +56,7 @@ uploadBtn.addEventListener('click', (e) => {
 // get folder path and send it to the main process
 uploadFolder.addEventListener('click', async (e) => {
     const currentFolder = getCurrentPath();
-    console.log(currentFolder);
+    // console.log(currentFolder);
     window
         .api
         .uploadFolder(currentFolder);
@@ -84,7 +84,7 @@ rootBtn.addEventListener('click', async (e) => {
         }
         currentObject = files;
         createElement(files);
-        addOpeningEvents();
+        // addOpeningEvents();
 
     } catch (error) {
         console.log(error);
@@ -148,8 +148,8 @@ function addOpeningEvents() {
             if (file.type === 'folder') {
             createElement([file]);
             }else{
-            //    window.api.openFile(file.path);
-            console.log(file.path);
+            window.api.openFile(file.path);
+            // console.log(file.path);
             }
         });
     });
@@ -168,9 +168,6 @@ function addSelectEvents() {
             };
             // console.log(target.dataset.object);
             let file = JSON.parse(target.dataset.object);
-
-            addOpeningEvents();
-            addSelectEvents();
             changePath(file.path);
         });
     });
@@ -192,16 +189,16 @@ back.addEventListener('click', (e) => {
         pathArray.pop();
         let newPath = pathArray.join('/') + '/';
         pathText.innerHTML = newPath;
-        console.log(newPath);
+        // console.log(newPath);
 
     } else {
         let pathArray = currentPath.split('/');
         pathArray.pop();
         let newPath = pathArray.join('/') + '/';
         pathText.innerHTML = newPath;
-        console.log(newPath);
+        // console.log(newPath);
     }
-    let file = findFile(pathText.innerHTML);
+    findFile(pathText.innerHTML);
 
 });
 
@@ -213,11 +210,11 @@ function findFile(filePath) {
     }
     let curent = currentObject;
     let pathArray = filePath.split('/');
-    console.log('pathArray before shift', pathArray);
+    // console.log('pathArray before shift', pathArray);
     pathArray.shift();
-    console.log('pathArray after shift', pathArray);
+    // console.log('pathArray after shift', pathArray);
     pathArray.forEach((path) => {
-        console.log(curent);
+        // console.log(curent);
         let file = curent[0]
             .children
             .find((file) => file.name === path);

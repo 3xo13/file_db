@@ -1,23 +1,20 @@
-const {app, BrowserWindow, ipcMain} = require('electron');
+const {app, BrowserWindow, ipcMain, dialog} = require('electron');
 const path = require('path');
 const {MongoClient} = require('mongodb');
 const {uploadFolderToBucket} = require('./modules/database.js');
 require('dotenv').config();
-const {getTreeStructure, handleFolderOpen} = require('./modules/functions');
+const {handleFolderOpen} = require('./modules/functions');
 const {getFilePaths} = require('./modules/functions');
 const {findUserInDatabase} = require('./modules/mongoOperations');
 const {createFolderRecord} = require('./modules/mongoOperations');
 const {getFileFromDB} = require('./modules/database.js');
+const fs = require('fs');
+
 // Load AWS configuration file
 process.env.AWS_SDK_LOAD_CONFIG = 1;
 // Load AWS credentials and region from environment variables
-const accessKey = process.env.AWS_ACCESS_KEY;
-const secretKey = process.env.AWS_SECRET_KEY;
-const region = process.env.AWS_REGION;
 const mongoURL = process.env.MONGO_URL;
-const mainId = process.env.MAIN_ID;
 const dbName = 'alpha_file_syastem';
-//console.log(mainId);
 
 // global window
 let currentWindow;
@@ -45,18 +42,15 @@ app.on('window-all-closed', () => {
 
 // handle the data for loging in
 ipcMain.on('form-submitted', async (event, data) => {
-    //console.log(data);
     const user = await findUserInDatabase(data);
     if (user) {
         if (typeof user === 'string') {
             return user
         } else {
-
             currentWindow.loadFile('./views/index.html');
-        }
-    }
-    //console.log('Received form data in main process:',user);
-})
+        };
+    };
+});
 
 // handle logout
 ipcMain.handle('logout', () => currentWindow.loadFile('./views/login.html'));
@@ -68,12 +62,10 @@ ipcMain.handle('reload', () => currentWindow.reload());
 ipcMain.handle('uploadFolder', async (event, s3FolderPath) => {
     try {
         const folderPath = await handleFolderOpen();
-        // console.log('folder path', folderPath);
         const filePaths = getFilePaths(folderPath);
         if(filePaths.length === 0){
             throw new Error('No files found in the folder');
         }
-
         const folderName = folderPath
         .split('\\')
         .slice(-1)[0];
@@ -82,11 +74,8 @@ ipcMain.handle('uploadFolder', async (event, s3FolderPath) => {
             folderPath,
             filePaths
         );
-        // console.log('record results : ',recordResult);
         if (recordResult && recordResult[1].modifiedCount > 0) {
             let result = await uploadFolderToBucket(s3FolderPath, filePaths , folderName);
-            
-        //    console.log(result);
         }
     } catch (error) {
         console.log(error);
@@ -101,19 +90,13 @@ ipcMain.handle('requestFiles', async (e)=> {
         const db = client.db(dbName);
         const collection = db.collection('records');
         const result = await collection.find({name: 'main'}).toArray();
-        // console.log(result);
-         return result;
-        //const treeStructure = getTreeStructure(result);
-        // console.log(treeStructure);
-       // return treeStructure;
+        return result;
     } catch (error) {
         console.log(error);
     }
-})
+});
 
 // expermintal functions
-
-
 
 // create windwos
 function createWindow(window) {
@@ -138,18 +121,39 @@ function createWindow(window) {
         currentWindow = null;
     });
 
-}
+};
 
-// open file // not working and too many events are being fired
-ipcMain.handle('openFile', async (event, path) => {
+// save a file to the local machine
+ipcMain.handle('openFile', async (event, path ) => {
+    const fileName = path.split('/').slice(-1)[0];
     try {
         let file = await getFileFromDB(path);
-        console.log(file); 
+        // download file
+        let saveDialog = await dialog.showSaveDialog({
+            title: 'Save File',
+            buttonLabel: 'Save',
+            defaultPath: fileName
+            
+        });
+        if(saveDialog.canceled){
+            return;
+        }
+        else{
+            let filePath = saveDialog.filePath;
+            fs.writeFileSync(filePath, file.Body, (err) => {
+                if(err){
+                    console.log(err);
+                }
+                else{
+                    return 'File saved successfully';
+                }
+            })
+        }
     } catch (error) {
-        console.log(error);
+        return error;
     }
     
     
-})
+});
 
 
